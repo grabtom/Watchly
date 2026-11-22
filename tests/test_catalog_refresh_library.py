@@ -158,16 +158,15 @@ def test_refresh_reads_settings_before_a_stremio_relogin_can_encrypt_them(refres
     assert refresh.fetched == [("stremio", "plain-tmdb-key")]
 
 
-@pytest.mark.parametrize("source", ["trakt", "simkl"])
-def test_refresh_leaves_a_trakt_or_simkl_library_as_it_is(refresh, monkeypatch, source):
-    """Trakt and Simkl report an outage or a rejected token as an empty history, so a
-    scheduled refetch would cache that over the user's library. They keep the library
-    from setup until their fetches can tell a failure from an empty history."""
+@pytest.mark.parametrize("source", ["trakt", "simkl", "mdblist", "nuvio"])
+def test_refresh_refetches_an_external_history(refresh, monkeypatch, source):
+    """A failed external fetch falls back to Stremio, and cache_library_and_profiles
+    refuses to cache that, so external libraries can refresh like a Stremio one."""
     use_stremio(monkeypatch, stored_key_valid=True)
     credentials = asyncio.run(stored_credentials(watch_history_source=source))
     asyncio.run(user_cache.set_library_items(TOKEN, library_of("tt0000001", source=source)))
 
     assert asyncio.run(catalog_updater.refresh_catalogs_for_credentials(TOKEN, credentials, update_timestamp=False))
 
-    assert refresh.fetched == []
-    assert refresh.manifest == [["tt0000001"]]
+    assert [fetched for fetched, _ in refresh.fetched] == [source]
+    assert refresh.manifest == [["tt0000001", "tt0000002"]]
