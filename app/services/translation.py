@@ -38,6 +38,8 @@ _STATIC_TRANSLATIONS: dict[tuple[str, str], str] = {
     ("it", "Based on what you loved"): "In base a ciò che hai adorato",
     ("it", "Based on what you liked"): "In base a ciò che ti è piaciuto",
     ("it", "Watch it again"): "Da riguardare",
+    ("pl", "Because you watched"): "Podobne do",
+    ("pl", "Because you loved"): "Dla fanów",
 }
 
 # Google's translate codes predate ISO 639-1 in a few places, and TMDB hands us the

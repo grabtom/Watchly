@@ -69,6 +69,12 @@ def test_italian_labels_use_static_translations(no_network):
     assert no_network == []
 
 
+def test_polish_item_labels_use_static_translations(no_network):
+    assert translate("Because you watched", "pl-PL") == "Podobne do"
+    assert translate("Because you loved", "pl") == "Dla fanów"
+    assert no_network == []
+
+
 def test_supported_codes_pass_through_unchanged(no_network):
     # Not a curated string, so it actually reaches the translator.
     translate("Korean Action Thrillers", "fr")
