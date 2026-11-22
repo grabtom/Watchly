@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.core.config import settings
 from app.services.poster_ratings.factory import PosterProvider
 
 # The seed pool is the 3 most-recent loved + 3 most-recent watched items. Capped
@@ -142,6 +143,14 @@ class UserSettings(BaseModel):
     watch_history_source: Literal["stremio", "trakt", "simkl", "mdblist", "nuvio"] = Field(
         default="stremio", description="Source for watch history used in profile building"
     )
+    refresh_interval_hours: int | None = Field(
+        default=None, description="Hours between history refreshes; None uses the server default"
+    )
+
+    def refresh_interval_seconds(self) -> int:
+        if self.refresh_interval_hours is None:
+            return settings.CATALOG_REFRESH_INTERVAL_SECONDS
+        return self.refresh_interval_hours * 3600
 
 
 # Catalog descriptions for frontend
@@ -304,8 +313,6 @@ def settings_from_credentials(credentials: dict[str, Any]) -> UserSettings:
 
 def resolve_tmdb_api_key(user_settings: UserSettings | None) -> str | None:
     """Use TMDB API key from user settings (Redis) if set, else from server config."""
-    from app.core.config import settings
-
     if user_settings and user_settings.tmdb_api_key:
         return user_settings.tmdb_api_key
     return settings.TMDB_API_KEY

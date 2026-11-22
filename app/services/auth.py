@@ -446,6 +446,7 @@ class AuthService:
             nuvio_profile_id=payload.nuvio_profile_id,
             nuvio_profile_name=payload.nuvio_profile_name,
             watch_history_source=payload.watch_history_source,
+            refresh_interval_hours=payload.refresh_interval_hours,
         )
 
     @staticmethod

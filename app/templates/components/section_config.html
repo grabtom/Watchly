@@ -114,6 +114,11 @@
                 </div>
             </div>
             <input type="hidden" id="watchHistorySource" value="stremio">
+            <div class="mt-5 max-w-xs">
+                <label for="refreshIntervalHours" class="field-label">Refresh history every N hours</label>
+                <input type="number" id="refreshIntervalHours" min="2" max="168" step="1" class="input" placeholder="Server default">
+                <p class="field-hint">Leave empty to use the server default. Your rows are rebuilt on the same schedule.</p>
+            </div>
         </div>
 
         <!-- Discovery -->

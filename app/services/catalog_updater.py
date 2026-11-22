@@ -6,7 +6,6 @@ from typing import Any
 from fastapi import HTTPException
 from loguru import logger
 
-from app.core.config import settings
 from app.core.security import redact_token
 from app.services.auth import auth_service
 from app.services.context import extract_settings
@@ -52,6 +51,7 @@ class CatalogUpdater:
         if not last_updated:
             return True
 
+        interval = extract_settings(credentials).refresh_interval_seconds()
         try:
             if isinstance(last_updated, str):
                 last_update_time = datetime.fromisoformat(last_updated.replace("Z", "+00:00"))
@@ -63,7 +63,7 @@ class CatalogUpdater:
                 last_update_time = last_update_time.replace(tzinfo=timezone.utc)
 
             time_since_update = (now - last_update_time).total_seconds()
-            return time_since_update >= (settings.CATALOG_REFRESH_INTERVAL_SECONDS - 3600)
+            return time_since_update >= (interval - 3600)
         except (ValueError, TypeError, AttributeError) as e:
             logger.warning(f"Failed to parse last_updated timestamp: {e}. Treating as needs update.")
             return True

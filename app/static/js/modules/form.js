@@ -102,6 +102,7 @@ function getRequestPayload() {
         excluded_movie_genres: Array.from(document.querySelectorAll('input[name="movie-genre"]:checked')).map(cb => cb.value),
         excluded_series_genres: Array.from(document.querySelectorAll('input[name="series-genre"]:checked')).map(cb => cb.value),
         watch_history_source: document.getElementById('watchHistorySource')?.value || 'stremio',
+        refresh_interval_hours: parseInt(document.getElementById('refreshIntervalHours')?.value, 10) || null,
     };
 }
 
@@ -149,6 +150,7 @@ function buildTokenPayload(formData) {
         excluded_movie_genres: formData.excluded_movie_genres,
         excluded_series_genres: formData.excluded_series_genres,
         watch_history_source: formData.watch_history_source,
+        refresh_interval_hours: formData.refresh_interval_hours,
         trakt_access_token: window._watchlyOAuth?.trakt?.access_token || undefined,
         trakt_refresh_token: window._watchlyOAuth?.trakt?.refresh_token || undefined,
         trakt_token_expires_at: window._watchlyOAuth?.trakt?.expires_at || undefined,

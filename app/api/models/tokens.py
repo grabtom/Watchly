@@ -43,6 +43,10 @@ class TokenRequest(BaseModel):
     watch_history_source: Literal["stremio", "trakt", "simkl", "mdblist", "nuvio"] = Field(
         default="stremio", description="Source for watch history"
     )
+    # 2 h minimum: the scheduled refresh fires an hour early, so 1 h would make every request due.
+    refresh_interval_hours: int | None = Field(
+        default=None, ge=2, le=168, description="Hours between history refreshes; omit for the server default"
+    )
 
 
 class TraktTokens(BaseModel):

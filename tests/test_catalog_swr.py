@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import pytest
 
 from app.core.settings import UserSettings
+from app.services.catalog_updater import catalog_updater
 from app.services.recommendation import catalog_service as cs_module
 from app.services.recommendation.catalog_service import catalog_service
 
@@ -36,7 +37,7 @@ def harness(monkeypatch):
     monkeypatch.setattr(cs_module.redis_service, "set_nx", fake_redis.set_nx)
     monkeypatch.setattr(cs_module.redis_service, "delete", fake_redis.delete)
 
-    state = {"cached": None, "age": 0, "builds": 0, "refresh_due": False}
+    state = {"cached": None, "age": 0, "builds": 0, "refresh_due": False, "refresh_interval_hours": None}
 
     async def fake_resolve_alias(token):
         return token
@@ -46,7 +47,9 @@ def harness(monkeypatch):
         # the per-row path on its own unless it asks for a refresh to be due.
         last_updated = None if state["refresh_due"] else datetime.now(timezone.utc).isoformat()
         return {
-            "settings": UserSettings(catalogs=[], watch_history_source="stremio").model_dump(),
+            "settings": UserSettings(
+                catalogs=[], watch_history_source="stremio", refresh_interval_hours=state["refresh_interval_hours"]
+            ).model_dump(),
             "last_updated": last_updated,
         }
 
@@ -198,3 +201,30 @@ def test_stale_row_is_rebuilt_after_a_refresh_that_leaves_it(harness, monkeypatc
     """Not every refresh replaces the library: Trakt and Simkl users, a failed fetch, or
     an install missing from the Stremio collection leave the row stale."""
     assert refresh_due_while_stale(harness, monkeypatch, refresh_rebuilds_the_row=False) == 1
+
+
+@pytest.mark.parametrize("hours, rebuilt", [(None, 0), (2, 1)])
+def test_user_refresh_interval_decides_when_a_row_is_stale(harness, hours, rebuilt):
+    harness["cached"] = STALE
+    harness["age"] = 3 * 3600
+    harness["refresh_interval_hours"] = hours
+
+    async def scenario():
+        await catalog_service.get_catalog(TOKEN, "movie", "watchly.rec")
+        await asyncio.sleep(0)
+        await asyncio.gather(*list(catalog_service._refresh_tasks))
+
+    asyncio.run(scenario())
+
+    assert harness["builds"] == rebuilt
+
+
+@pytest.mark.parametrize("hours, due", [(None, False), (2, True)])
+def test_user_refresh_interval_decides_when_the_history_refresh_is_due(hours, due):
+    three_hours_ago = datetime.fromtimestamp(time.time() - 3 * 3600, timezone.utc).isoformat()
+    credentials = {
+        "settings": UserSettings(catalogs=[], refresh_interval_hours=hours).model_dump(),
+        "last_updated": three_hours_ago,
+    }
+
+    assert catalog_updater._needs_update(credentials) is due

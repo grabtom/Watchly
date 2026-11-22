@@ -94,7 +94,8 @@ class CatalogService:
             user_settings = extract_settings(credentials)
             data["metas"] = shuffle_data_if_needed(user_settings, catalog_id, data["metas"])
 
-            if age < settings.CATALOG_REFRESH_INTERVAL_SECONDS:
+            interval = user_settings.refresh_interval_seconds()
+            if age < interval:
                 logger.debug(f"[{redact_token(token)}] Using cached catalog for {content_type}/{catalog_id}")
                 return data, headers
 
@@ -105,7 +106,7 @@ class CatalogService:
                 f"[{redact_token(token)}] Catalog stale (age: {age}s) for {content_type}/{catalog_id}, "
                 "serving stale and refreshing in the background"
             )
-            self._enqueue_refresh(token, content_type, catalog_id)
+            self._enqueue_refresh(token, content_type, catalog_id, interval)
             return data, headers
 
         logger.info(
@@ -136,12 +137,12 @@ class CatalogService:
             "Cache-Control": f"private, max-age={max_age},stale-while-revalidate=3600, stale-if-error=1800",
         }
 
-    def _enqueue_refresh(self, token: str, content_type: str, catalog_id: str) -> None:
-        task = asyncio.create_task(self._refresh_in_background(token, content_type, catalog_id))
+    def _enqueue_refresh(self, token: str, content_type: str, catalog_id: str, interval: int) -> None:
+        task = asyncio.create_task(self._refresh_in_background(token, content_type, catalog_id, interval))
         self._refresh_tasks.add(task)
         task.add_done_callback(self._refresh_tasks.discard)
 
-    async def _refresh_in_background(self, token: str, content_type: str, catalog_id: str) -> None:
+    async def _refresh_in_background(self, token: str, content_type: str, catalog_id: str, interval: int) -> None:
         """Rebuild a stale catalog into the cache.
 
         Locked in Redis rather than in-process because Stremio asks for every
@@ -160,7 +161,7 @@ class CatalogService:
             # is still stale.
             await catalog_updater.wait_for(token)
             cached = await user_cache.get_catalog(token, content_type, catalog_id)
-            if cached and int(time.time()) - cached[1] < settings.CATALOG_REFRESH_INTERVAL_SECONDS:
+            if cached and int(time.time()) - cached[1] < interval:
                 return
             ctx = await load_user_context(token)
             try:

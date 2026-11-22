@@ -531,6 +531,9 @@ async function fetchIdentity(payload) {
             const sortingOrderSelect = document.getElementById('sortingOrderSelect');
             if (s.sorting_order && sortingOrderSelect) sortingOrderSelect.value = s.sorting_order;
 
+            const refreshIntervalInput = document.getElementById('refreshIntervalHours');
+            if (refreshIntervalInput) refreshIntervalInput.value = s.refresh_interval_hours ?? '';
+
             // Handle poster rating: prefer new format, fallback to old rpdb_key
             const posterRatingProvider = document.getElementById('posterRatingProvider');
             const posterRatingApiKey = document.getElementById('posterRatingApiKey');
