@@ -73,6 +73,13 @@ class ManifestService:
             # empty every row until the next successful fetch.
             logger.warning(f"[{redact_token(token)}] Library fetch from '{source}' failed; not caching it")
             return LibraryCollection()
+        if library_items.source != source:
+            # The external fetch failed and fell back to Stremio. Cached, it would
+            # replace the user's library from their own source.
+            logger.warning(
+                f"[{redact_token(token)}] '{source}' fetch fell back to '{library_items.source}'; not caching it"
+            )
+            return LibraryCollection()
         await user_cache.set_library_items(token, library_items)
         logger.debug(f"[{redact_token(token)}] Cached library items (source={library_items.source})")
 
